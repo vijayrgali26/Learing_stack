@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111827">
+    <meta name="description" content="Study timer, streak tracker, course records, and AI coach insights.">
+    <title>Learning Stack</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/icon.svg">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">LS</div>
+          <div>
+            <h1>Learning Stack</h1>
+            <p>Study timer and streak tracker</p>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Dashboard sections">
+          <a href="#timer" class="nav-link active">Timer</a>
+          <a href="#courses" class="nav-link">Courses</a>
+          <a href="#records" class="nav-link">Records</a>
+          <a href="#coach" class="nav-link">AI Coach</a>
+        </nav>
+
+        <div class="streak-panel">
+          <span class="label">Current streak</span>
+          <strong id="streakValue">0 days</strong>
+          <p id="streakText">Start a timer today to begin your streak.</p>
+        </div>
+
+        <button class="install-button" id="installAppBtn" type="button" hidden>Install app</button>
+      </aside>
+
+      <main class="main">
+        <section class="topbar" aria-label="Today overview">
+          <div>
+            <span class="eyebrow" id="todayLabel">Today</span>
+            <h2>Track every focused study session.</h2>
+          </div>
+          <div class="metric-row">
+            <div class="metric">
+              <span>Today</span>
+              <strong id="todayTotal">0h 00m</strong>
+            </div>
+            <div class="metric">
+              <span>Week</span>
+              <strong id="weekTotal">0h 00m</strong>
+            </div>
+            <div class="metric">
+              <span>Courses</span>
+              <strong id="courseCount">0</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="grid">
+          <section class="panel timer-panel" id="timer">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Study stopwatch</span>
+                <h3>Start before learning, stop after finishing.</h3>
+              </div>
+              <span class="status-pill" id="timerStatus">Idle</span>
+            </div>
+
+            <div class="timer-display" id="timerDisplay">00:00:00</div>
+
+            <div class="timer-controls">
+              <label>
+                Course
+                <select id="courseSelect"></select>
+              </label>
+              <label>
+                Focus note
+                <input id="sessionNote" type="text" placeholder="Example: Arrays revision">
+              </label>
+            </div>
+
+            <div class="button-row">
+              <button class="primary" id="startBtn" type="button">Start timer</button>
+              <button class="danger" id="stopBtn" type="button" disabled>Stop and save</button>
+              <button class="ghost" id="resetBtn" type="button">Reset</button>
+            </div>
+          </section>
+
+          <section class="panel" id="courses">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Courses</span>
+                <h3>Add what you are studying.</h3>
+              </div>
+            </div>
+
+            <form class="course-form" id="courseForm">
+              <input id="courseName" type="text" placeholder="Course name" required>
+              <input id="courseGoal" type="number" min="0.5" step="0.5" value="2" required aria-label="Daily goal hours">
+              <select id="courseColor" aria-label="Course color">
+                <option value="#2563eb">Blue</option>
+                <option value="#16a34a">Green</option>
+                <option value="#dc2626">Red</option>
+                <option value="#9333ea">Violet</option>
+                <option value="#ea580c">Orange</option>
+              </select>
+              <button type="submit">Add</button>
+            </form>
+
+            <div class="course-list" id="courseList"></div>
+          </section>
+        </section>
+
+        <section class="panel" id="records">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Daily records</span>
+              <h3>Today by course and recent sessions.</h3>
+            </div>
+            <button class="ghost" id="addManualBtn" type="button">Add manual session</button>
+          </div>
+
+          <div class="chart" id="todayChart"></div>
+          <div class="session-list" id="sessionList"></div>
+        </section>
+
+        <section class="panel coach-panel" id="coach">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">AI features</span>
+              <h3>Coach insights from your study history.</h3>
+            </div>
+            <button class="primary" id="refreshCoachBtn" type="button">Refresh coach</button>
+          </div>
+
+          <div class="coach-grid">
+            <div class="coach-card">
+              <span>Next best action</span>
+              <p id="coachAction">Add a course and complete your first session.</p>
+            </div>
+            <div class="coach-card">
+              <span>Consistency insight</span>
+              <p id="coachConsistency">Your streak will appear after you study.</p>
+            </div>
+            <div class="coach-card">
+              <span>Course balance</span>
+              <p id="coachBalance">No course data yet.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="manualDialog">
+      <form method="dialog" class="manual-form" id="manualForm">
+        <h3>Add manual session</h3>
+        <label>
+          Course
+          <select id="manualCourse"></select>
+        </label>
+        <label>
+          Date
+          <input id="manualDate" type="date" required>
+        </label>
+        <label>
+          Hours studied
+          <input id="manualHours" type="number" min="0.1" step="0.1" value="1" required>
+        </label>
+        <label>
+          Note
+          <input id="manualNote" type="text" placeholder="What did you study?">
+        </label>
+        <div class="button-row">
+          <button class="primary" value="save" type="submit">Save</button>
+          <button class="ghost" value="cancel" type="button" id="closeManualBtn">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

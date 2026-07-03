@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Learning Stack app icon">
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <path d="M128 144c0-22.1 17.9-40 40-40h176c22.1 0 40 17.9 40 40v224c0 22.1-17.9 40-40 40H168c-22.1 0-40-17.9-40-40V144Z" fill="#f8fafc"/>
+  <path d="M176 160h160v38H176v-38Zm0 78h160v38H176v-38Zm0 78h104v38H176v-38Z" fill="#2563eb"/>
+  <circle cx="352" cy="352" r="58" fill="#16a34a"/>
+  <path d="M352 318v37l27 18" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
