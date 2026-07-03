@@ -33,6 +33,7 @@ const els = {
   courseColor: document.querySelector("#courseColor"),
   courseList: document.querySelector("#courseList"),
   todayChart: document.querySelector("#todayChart"),
+  studyHeatmap: document.querySelector("#studyHeatmap"),
   sessionList: document.querySelector("#sessionList"),
   addManualBtn: document.querySelector("#addManualBtn"),
   manualDialog: document.querySelector("#manualDialog"),
@@ -112,6 +113,10 @@ function formatStopwatch(totalSeconds) {
 
 function getCourse(courseId) {
   return state.courses.find((course) => course.id === courseId);
+}
+
+function activeSessions(sessions = state.sessions) {
+  return sessions.filter((session) => getCourse(session.courseId));
 }
 
 function sessionsForDate(key) {
@@ -230,7 +235,7 @@ function renderSummary() {
 }
 
 function renderChart() {
-  const todayTotals = totalsByCourse(sessionsForDate(dateKey()));
+  const todayTotals = totalsByCourse(activeSessions(sessionsForDate(dateKey())));
   const maxMinutes = Math.max(1, ...Object.values(todayTotals));
   const rows = state.courses
     .filter((course) => todayTotals[course.id])
@@ -251,8 +256,59 @@ function renderChart() {
     : `<div class="empty">No study time recorded today.</div>`;
 }
 
+function renderHeatmap() {
+  const daysToShow = 84;
+  const today = startOfDay();
+  const firstDay = new Date(today);
+  firstDay.setDate(today.getDate() - daysToShow + 1);
+
+  const totals = activeSessions().reduce((acc, session) => {
+    const key = dateKey(new Date(session.start));
+    acc[key] = (acc[key] || 0) + session.minutes;
+    return acc;
+  }, {});
+
+  const blanks = Array.from({ length: firstDay.getDay() }, () => `<span class="heat-day empty-day"></span>`);
+  const cells = [];
+
+  for (let index = 0; index < daysToShow; index += 1) {
+    const day = new Date(firstDay);
+    day.setDate(firstDay.getDate() + index);
+    const key = dateKey(day);
+    const minutes = totals[key] || 0;
+    const level = getHeatLevel(minutes);
+    const dateLabel = day.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric"
+    });
+    const tooltip = `${dateLabel}: ${formatDuration(minutes)} studied`;
+    const tick = minutes > 0 ? "✓" : "";
+
+    cells.push(`
+      <button
+        class="heat-day level-${level}"
+        type="button"
+        data-tooltip="${escapeHtml(tooltip)}"
+        aria-label="${escapeHtml(tooltip)}"
+        title="${escapeHtml(tooltip)}"
+      >${tick}</button>
+    `);
+  }
+
+  els.studyHeatmap.innerHTML = [...blanks, ...cells].join("");
+}
+
+function getHeatLevel(minutes) {
+  if (minutes <= 0) return 0;
+  if (minutes < 30) return 1;
+  if (minutes < 90) return 2;
+  if (minutes < 180) return 3;
+  return 4;
+}
+
 function renderSessions() {
-  const recent = [...state.sessions]
+  const recent = activeSessions()
     .sort((a, b) => new Date(b.start) - new Date(a.start))
     .slice(0, 8);
 
@@ -331,6 +387,7 @@ function renderAll() {
   renderCourses();
   renderSummary();
   renderChart();
+  renderHeatmap();
   renderSessions();
   renderCoach();
   saveState();

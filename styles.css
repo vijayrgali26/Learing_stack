@@ -335,7 +335,8 @@ select:focus {
 
 .course-list,
 .session-list,
-.chart {
+.chart,
+.study-heatmap {
   display: grid;
   gap: 12px;
 }
@@ -407,6 +408,108 @@ select:focus {
 .bar span {
   display: block;
   height: 100%;
+}
+
+.heatmap-wrap {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.mini-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.mini-head span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.study-heatmap {
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 22px);
+  grid-auto-columns: 22px;
+  justify-content: start;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+}
+
+.heat-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d7dfeb;
+  border-radius: 5px;
+  background: #eef2f7;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.heat-day:hover,
+.heat-day:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.38);
+  outline-offset: 2px;
+}
+
+.heat-day:hover::after,
+.heat-day:focus-visible::after {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  width: max-content;
+  max-width: 210px;
+  transform: translateX(-50%);
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  content: attr(data-tooltip);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
+}
+
+.empty-day {
+  visibility: hidden;
+}
+
+.level-0 {
+  background: #eef2f7;
+  color: transparent;
+}
+
+.level-1 {
+  background: #bbf7d0;
+  border-color: #86efac;
+}
+
+.level-2 {
+  background: #4ade80;
+  border-color: #22c55e;
+}
+
+.level-3 {
+  background: #16a34a;
+  border-color: #15803d;
+}
+
+.level-4 {
+  background: #166534;
+  border-color: #14532d;
 }
 
 .coach-grid {
@@ -492,6 +595,16 @@ dialog::backdrop {
   .course-form,
   .chart-row {
     grid-template-columns: 1fr;
+  }
+
+  .study-heatmap {
+    grid-template-rows: repeat(7, 20px);
+    grid-auto-columns: 20px;
+  }
+
+  .heat-day {
+    width: 20px;
+    height: 20px;
   }
 
   .nav {
