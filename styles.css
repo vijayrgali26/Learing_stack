@@ -142,6 +142,40 @@ button:disabled {
   font-size: 2rem;
 }
 
+.streak-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.streak-symbol {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #facc15;
+  color: #111827;
+  font-weight: 900;
+}
+
+.compact-toggle {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  color: #e5eaf3;
+  font-size: 0.84rem;
+}
+
+.compact-toggle input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: #facc15;
+}
+
 .install-button {
   min-height: 42px;
   border-radius: 8px;
@@ -349,6 +383,28 @@ select:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfdff;
+}
+
+.course-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.small-button {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 0 11px;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.course-edit-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 88px 105px auto auto;
+  gap: 9px;
+  align-items: end;
 }
 
 .item-row {
@@ -593,6 +649,7 @@ dialog::backdrop {
   .metric-row,
   .timer-controls,
   .course-form,
+  .course-edit-form,
   .chart-row {
     grid-template-columns: 1fr;
   }

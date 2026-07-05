@@ -6,12 +6,16 @@ const defaultState = {
     { id: createId(), name: "Mathematics", goalHours: 1.5, color: "#16a34a" }
   ],
   sessions: [],
-  activeTimer: null
+  activeTimer: null,
+  ui: {
+    hideCompletedCourses: false
+  }
 };
 
 let state = loadState();
 let tickHandle = null;
 let deferredInstallPrompt = null;
+let editingCourseId = null;
 
 const els = {
   todayLabel: document.querySelector("#todayLabel"),
@@ -25,8 +29,11 @@ const els = {
   courseSelect: document.querySelector("#courseSelect"),
   sessionNote: document.querySelector("#sessionNote"),
   startBtn: document.querySelector("#startBtn"),
+  pauseBtn: document.querySelector("#pauseBtn"),
+  resumeBtn: document.querySelector("#resumeBtn"),
   stopBtn: document.querySelector("#stopBtn"),
   resetBtn: document.querySelector("#resetBtn"),
+  hideCompletedToggle: document.querySelector("#hideCompletedToggle"),
   courseForm: document.querySelector("#courseForm"),
   courseName: document.querySelector("#courseName"),
   courseGoal: document.querySelector("#courseGoal"),
@@ -59,11 +66,27 @@ function loadState() {
     return {
       courses: parsed.courses?.length ? parsed.courses : cloneDefaultState().courses,
       sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-      activeTimer: parsed.activeTimer || null
+      activeTimer: normalizeTimer(parsed.activeTimer),
+      ui: {
+        ...cloneDefaultState().ui,
+        ...(parsed.ui || {})
+      }
     };
   } catch {
     return cloneDefaultState();
   }
+}
+
+function normalizeTimer(timer) {
+  if (!timer) return null;
+  return {
+    courseId: timer.courseId,
+    note: timer.note || "",
+    startedAt: timer.startedAt || new Date().toISOString(),
+    runningStartedAt: timer.runningStartedAt || timer.startedAt || new Date().toISOString(),
+    accumulatedSeconds: Number.isFinite(timer.accumulatedSeconds) ? timer.accumulatedSeconds : 0,
+    isPaused: Boolean(timer.isPaused)
+  };
 }
 
 function saveState() {
@@ -115,6 +138,16 @@ function getCourse(courseId) {
   return state.courses.find((course) => course.id === courseId);
 }
 
+function isCourseCompletedToday(course, totals = totalsByCourse(sessionsForDate(dateKey()))) {
+  return (totals[course.id] || 0) >= course.goalHours * 60;
+}
+
+function visibleCoursesForToday() {
+  if (!state.ui.hideCompletedCourses) return state.courses;
+  const todayTotals = totalsByCourse(sessionsForDate(dateKey()));
+  return state.courses.filter((course) => !isCourseCompletedToday(course, todayTotals));
+}
+
 function activeSessions(sessions = state.sessions) {
   return sessions.filter((session) => getCourse(session.courseId));
 }
@@ -159,43 +192,87 @@ function calculateStreak() {
 }
 
 function renderOptions() {
-  const optionMarkup = state.courses
+  const optionMarkup = visibleCoursesForToday()
     .map((course) => `<option value="${course.id}">${escapeHtml(course.name)}</option>`)
     .join("");
   els.courseSelect.innerHTML = optionMarkup;
-  els.manualCourse.innerHTML = optionMarkup;
+  els.manualCourse.innerHTML = state.courses
+    .map((course) => `<option value="${course.id}">${escapeHtml(course.name)}</option>`)
+    .join("");
 }
 
 function renderTimer() {
   if (!state.activeTimer) {
     els.timerDisplay.textContent = "00:00:00";
     els.timerStatus.textContent = "Idle";
-    els.startBtn.disabled = state.courses.length === 0;
+    els.startBtn.disabled = !visibleCoursesForToday().length;
+    els.pauseBtn.disabled = true;
+    els.pauseBtn.hidden = false;
+    els.resumeBtn.disabled = true;
+    els.resumeBtn.hidden = true;
     els.stopBtn.disabled = true;
     els.courseSelect.disabled = false;
+    els.sessionNote.disabled = false;
     return;
   }
 
-  const elapsedSeconds = Math.floor((Date.now() - new Date(state.activeTimer.startedAt).getTime()) / 1000);
+  const elapsedSeconds = getActiveTimerSeconds();
   const course = getCourse(state.activeTimer.courseId);
   els.timerDisplay.textContent = formatStopwatch(elapsedSeconds);
-  els.timerStatus.textContent = course ? `Studying ${course.name}` : "Studying";
+  els.timerStatus.textContent = state.activeTimer.isPaused
+    ? "Paused"
+    : course ? `Studying ${course.name}` : "Studying";
   els.startBtn.disabled = true;
+  els.pauseBtn.disabled = state.activeTimer.isPaused;
+  els.pauseBtn.hidden = state.activeTimer.isPaused;
+  els.resumeBtn.disabled = !state.activeTimer.isPaused;
+  els.resumeBtn.hidden = !state.activeTimer.isPaused;
   els.stopBtn.disabled = false;
   els.courseSelect.disabled = true;
+  els.sessionNote.disabled = true;
 }
 
 function renderCourses() {
+  const coursesToRender = visibleCoursesForToday();
   if (!state.courses.length) {
     els.courseList.innerHTML = `<div class="empty">No courses yet. Add your first course to start tracking.</div>`;
     return;
   }
 
+  if (!coursesToRender.length) {
+    els.courseList.innerHTML = `<div class="empty">All courses with today's completed goals are hidden.</div>`;
+    return;
+  }
+
   const todayTotals = totalsByCourse(sessionsForDate(dateKey()));
-  els.courseList.innerHTML = state.courses.map((course) => {
+  els.courseList.innerHTML = coursesToRender.map((course) => {
     const studied = todayTotals[course.id] || 0;
     const goalMinutes = course.goalHours * 60;
     const progress = Math.min(100, Math.round((studied / goalMinutes) * 100));
+    if (editingCourseId === course.id) {
+      return `
+        <article class="course-item">
+          <form class="course-edit-form" data-course-id="${course.id}">
+            <label>
+              Name
+              <input name="name" type="text" value="${escapeHtml(course.name)}" required>
+            </label>
+            <label>
+              Hours
+              <input name="goalHours" type="number" min="0.5" step="0.5" value="${course.goalHours}" required>
+            </label>
+            <label>
+              Color
+              <select name="color" aria-label="Course color">
+                ${renderColorOptions(course.color)}
+              </select>
+            </label>
+            <button class="primary small-button" type="submit">Save</button>
+            <button class="ghost small-button cancel-course-edit" type="button">Cancel</button>
+          </form>
+        </article>
+      `;
+    }
     return `
       <article class="course-item">
         <div class="item-row">
@@ -203,7 +280,10 @@ function renderCourses() {
             <span class="swatch" style="background:${course.color}"></span>
             <span>${escapeHtml(course.name)}</span>
           </div>
-          <button class="ghost delete-course" data-course-id="${course.id}" type="button">Delete</button>
+          <div class="course-actions">
+            <button class="ghost small-button edit-course" data-course-id="${course.id}" type="button">Edit</button>
+            <button class="ghost small-button delete-course" data-course-id="${course.id}" type="button">Delete</button>
+          </div>
         </div>
         <div class="muted">Today: ${formatDuration(studied)} / Goal: ${formatDuration(goalMinutes)}</div>
         <div class="progress" aria-label="${course.name} progress">
@@ -228,6 +308,7 @@ function renderSummary() {
   els.todayTotal.textContent = formatDuration(totalMinutesForSessions(todaySessions));
   els.weekTotal.textContent = formatDuration(totalMinutesForSessions(weekSessions));
   els.courseCount.textContent = String(state.courses.length);
+  els.hideCompletedToggle.checked = state.ui.hideCompletedCourses;
   els.streakValue.textContent = `${streak} ${streak === 1 ? "day" : "days"}`;
   els.streakText.textContent = streak
     ? "Keep studying at least once per day to continue this streak."
@@ -235,9 +316,11 @@ function renderSummary() {
 }
 
 function renderChart() {
+  if (!els.todayChart) return;
+
   const todayTotals = totalsByCourse(activeSessions(sessionsForDate(dateKey())));
   const maxMinutes = Math.max(1, ...Object.values(todayTotals));
-  const rows = state.courses
+  const rows = visibleCoursesForToday()
     .filter((course) => todayTotals[course.id])
     .map((course) => {
       const minutes = todayTotals[course.id];
@@ -283,7 +366,7 @@ function renderHeatmap() {
       day: "numeric"
     });
     const tooltip = `${dateLabel}: ${formatDuration(minutes)} studied`;
-    const tick = minutes > 0 ? "✓" : "";
+    const tick = minutes > 0 ? "&#10003;" : "";
 
     cells.push(`
       <button
@@ -308,6 +391,8 @@ function getHeatLevel(minutes) {
 }
 
 function renderSessions() {
+  if (!els.sessionList) return;
+
   const recent = activeSessions()
     .sort((a, b) => new Date(b.start) - new Date(a.start))
     .slice(0, 8);
@@ -400,10 +485,40 @@ function startTimer() {
   state.activeTimer = {
     courseId,
     note: els.sessionNote.value.trim(),
-    startedAt: new Date().toISOString()
+    startedAt: new Date().toISOString(),
+    runningStartedAt: new Date().toISOString(),
+    accumulatedSeconds: 0,
+    isPaused: false
   };
   saveState();
   ensureTicker();
+  renderAll();
+}
+
+function getActiveTimerSeconds() {
+  if (!state.activeTimer) return 0;
+  const accumulated = state.activeTimer.accumulatedSeconds || 0;
+  if (state.activeTimer.isPaused) return accumulated;
+
+  const runningStartedAt = new Date(state.activeTimer.runningStartedAt || state.activeTimer.startedAt).getTime();
+  return accumulated + Math.max(0, Math.floor((Date.now() - runningStartedAt) / 1000));
+}
+
+function pauseTimer() {
+  if (!state.activeTimer || state.activeTimer.isPaused) return;
+
+  state.activeTimer.accumulatedSeconds = getActiveTimerSeconds();
+  state.activeTimer.isPaused = true;
+  saveState();
+  renderAll();
+}
+
+function resumeTimer() {
+  if (!state.activeTimer || !state.activeTimer.isPaused) return;
+
+  state.activeTimer.runningStartedAt = new Date().toISOString();
+  state.activeTimer.isPaused = false;
+  saveState();
   renderAll();
 }
 
@@ -411,7 +526,7 @@ function stopTimer() {
   if (!state.activeTimer) return;
 
   const endedAt = new Date().toISOString();
-  const minutes = Math.max(1, minutesBetween(state.activeTimer.startedAt, endedAt));
+  const minutes = Math.max(1, Math.round(getActiveTimerSeconds() / 60));
   state.sessions.push({
     id: createId(),
     courseId: state.activeTimer.courseId,
@@ -458,6 +573,24 @@ function deleteCourse(courseId) {
   }
 
   state.courses = state.courses.filter((course) => course.id !== courseId);
+  if (editingCourseId === courseId) editingCourseId = null;
+  renderAll();
+}
+
+function updateCourse(courseId, form) {
+  const course = getCourse(courseId);
+  if (!course) return;
+
+  const formData = new FormData(form);
+  const name = String(formData.get("name") || "").trim();
+  const goalHours = Number(formData.get("goalHours"));
+  const color = String(formData.get("color") || course.color);
+  if (!name || !Number.isFinite(goalHours) || goalHours <= 0) return;
+
+  course.name = name;
+  course.goalHours = goalHours;
+  course.color = color;
+  editingCourseId = null;
   renderAll();
 }
 
@@ -500,13 +633,51 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function renderColorOptions(selectedColor) {
+  const colors = [
+    ["#2563eb", "Blue"],
+    ["#16a34a", "Green"],
+    ["#dc2626", "Red"],
+    ["#9333ea", "Violet"],
+    ["#ea580c", "Orange"]
+  ];
+
+  return colors
+    .map(([value, label]) => `<option value="${value}" ${value === selectedColor ? "selected" : ""}>${label}</option>`)
+    .join("");
+}
+
 els.startBtn.addEventListener("click", startTimer);
+els.pauseBtn.addEventListener("click", pauseTimer);
+els.resumeBtn.addEventListener("click", resumeTimer);
 els.stopBtn.addEventListener("click", stopTimer);
 els.resetBtn.addEventListener("click", resetTimer);
+els.hideCompletedToggle.addEventListener("change", () => {
+  state.ui.hideCompletedCourses = els.hideCompletedToggle.checked;
+  renderAll();
+});
 els.courseForm.addEventListener("submit", addCourse);
 els.courseList.addEventListener("click", (event) => {
-  const button = event.target.closest(".delete-course");
-  if (button) deleteCourse(button.dataset.courseId);
+  const editButton = event.target.closest(".edit-course");
+  const deleteButton = event.target.closest(".delete-course");
+  const cancelButton = event.target.closest(".cancel-course-edit");
+
+  if (editButton) {
+    editingCourseId = editButton.dataset.courseId;
+    renderAll();
+  }
+  if (deleteButton) deleteCourse(deleteButton.dataset.courseId);
+  if (cancelButton) {
+    editingCourseId = null;
+    renderAll();
+  }
+});
+els.courseList.addEventListener("submit", (event) => {
+  const form = event.target.closest(".course-edit-form");
+  if (!form) return;
+
+  event.preventDefault();
+  updateCourse(form.dataset.courseId, form);
 });
 els.addManualBtn.addEventListener("click", () => {
   els.manualDate.value = dateKey();

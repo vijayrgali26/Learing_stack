@@ -30,9 +30,16 @@
         </nav>
 
         <div class="streak-panel">
-          <span class="label">Current streak</span>
+          <div class="streak-title">
+            <span class="label">Current streak</span>
+            <span class="streak-symbol" aria-hidden="true">&#9733;</span>
+          </div>
           <strong id="streakValue">0 days</strong>
           <p id="streakText">Start a timer today to begin your streak.</p>
+          <label class="compact-toggle">
+            <input id="hideCompletedToggle" type="checkbox">
+            Hide completed courses
+          </label>
         </div>
 
         <button class="install-button" id="installAppBtn" type="button" hidden>Install app</button>
@@ -85,6 +92,8 @@
 
             <div class="button-row">
               <button class="primary" id="startBtn" type="button">Start timer</button>
+              <button class="ghost" id="pauseBtn" type="button" disabled>Pause</button>
+              <button class="primary" id="resumeBtn" type="button" disabled hidden>Resume</button>
               <button class="danger" id="stopBtn" type="button" disabled>Stop and save</button>
               <button class="ghost" id="resetBtn" type="button">Reset</button>
             </div>
@@ -119,12 +128,11 @@
           <div class="section-head">
             <div>
               <span class="eyebrow">Daily records</span>
-              <h3>Today by course and recent sessions.</h3>
+              <h3>Study activity.</h3>
             </div>
             <button class="ghost" id="addManualBtn" type="button">Add manual session</button>
           </div>
 
-          <div class="chart" id="todayChart"></div>
           <div class="heatmap-wrap">
             <div class="mini-head">
               <strong>Study activity</strong>
@@ -132,7 +140,6 @@
             </div>
             <div class="study-heatmap" id="studyHeatmap" aria-label="Study activity heatmap"></div>
           </div>
-          <div class="session-list" id="sessionList"></div>
         </section>
 
         <section class="panel coach-panel" id="coach">
