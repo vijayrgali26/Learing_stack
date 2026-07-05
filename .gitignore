@@ -1,2 +1,4 @@
 .idea/
 *.iml
+.edge-test-profile/
+.chrome-test-profile/

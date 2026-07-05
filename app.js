@@ -16,6 +16,7 @@ let state = loadState();
 let tickHandle = null;
 let deferredInstallPrompt = null;
 let editingCourseId = null;
+let refreshingForServiceWorker = false;
 
 const els = {
   todayLabel: document.querySelector("#todayLabel"),
@@ -718,6 +719,8 @@ if ("serviceWorker" in navigator) {
   });
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshingForServiceWorker) return;
+    refreshingForServiceWorker = true;
     window.location.reload();
   });
 }

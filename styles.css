@@ -96,6 +96,17 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.app-version {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #dbeafe;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .nav {
   display: grid;
   gap: 8px;
