@@ -43,7 +43,7 @@
           </label>
         </div>
 
-        <button class="install-button" id="installAppBtn" type="button" hidden>Install app</button>
+        <button class="install-button" id="installAppBtn" type="button" hidden>Download app</button>
       </aside>
 
       <main class="main">
@@ -60,6 +60,10 @@
             <div class="metric">
               <span>Week</span>
               <strong id="weekTotal">0h 00m</strong>
+            </div>
+            <div class="metric">
+              <span>Daily Avg</span>
+              <strong id="dailyAvg">0h 00m</strong>
             </div>
             <div class="metric">
               <span>Courses</span>
@@ -140,6 +144,7 @@
               <span>Last 12 weeks</span>
             </div>
             <div class="study-heatmap" id="studyHeatmap" aria-label="Study activity heatmap"></div>
+            <div class="heatmap-meta" id="weekSummary">This week: 0h 00m studied</div>
           </div>
         </section>
 

@@ -22,6 +22,8 @@ const els = {
   todayLabel: document.querySelector("#todayLabel"),
   todayTotal: document.querySelector("#todayTotal"),
   weekTotal: document.querySelector("#weekTotal"),
+  dailyAvg: document.querySelector("#dailyAvg"),
+  weekSummary: document.querySelector("#weekSummary"),
   courseCount: document.querySelector("#courseCount"),
   streakValue: document.querySelector("#streakValue"),
   streakText: document.querySelector("#streakText"),
@@ -109,6 +111,14 @@ function startOfDay(date = new Date()) {
   return copy;
 }
 
+function startOfWeek(date = new Date()) {
+  const copy = startOfDay(date);
+  const dayIndex = copy.getDay();
+  const mondayOffset = (dayIndex + 6) % 7;
+  copy.setDate(copy.getDate() - mondayOffset);
+  return copy;
+}
+
 function dateKey(date = new Date()) {
   const local = startOfDay(date);
   const year = local.getFullYear();
@@ -169,10 +179,28 @@ function totalsByCourse(sessions) {
 }
 
 function getWeekSessions() {
-  const today = startOfDay();
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - 6);
-  return state.sessions.filter((session) => new Date(session.start) >= weekStart);
+  const weekStart = startOfWeek();
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  const now = new Date();
+
+  return state.sessions.filter((session) => {
+    const sessionDate = new Date(session.start || session.end || session.startedAt || session.date);
+    if (!Number.isFinite(sessionDate.getTime())) return false;
+    return sessionDate >= weekStart && sessionDate < weekEnd && sessionDate <= now;
+  });
+}
+
+/**
+ * Calculate average minutes studied per day over the past week.
+ *
+ * This uses the same 7-day calendar window as the weekly total so the
+ * summary stays consistent for the current week.
+ */
+function calculateDailyAverage() {
+  const weekSessions = getWeekSessions();
+  const totalMinutes = totalMinutesForSessions(weekSessions);
+  return totalMinutes / 7;
 }
 
 function calculateStreak() {
@@ -300,6 +328,7 @@ function renderSummary() {
   const todaySessions = sessionsForDate(dateKey(today));
   const weekSessions = getWeekSessions();
   const streak = calculateStreak();
+  const dailyAverage = calculateDailyAverage();
 
   els.todayLabel.textContent = today.toLocaleDateString(undefined, {
     weekday: "long",
@@ -308,6 +337,10 @@ function renderSummary() {
   });
   els.todayTotal.textContent = formatDuration(totalMinutesForSessions(todaySessions));
   els.weekTotal.textContent = formatDuration(totalMinutesForSessions(weekSessions));
+  els.dailyAvg.textContent = formatDuration(dailyAverage);
+  if (els.weekSummary) {
+    els.weekSummary.textContent = `This week: ${formatDuration(totalMinutesForSessions(weekSessions))} studied`;
+  }
   els.courseCount.textContent = String(state.courses.length);
   els.hideCompletedToggle.checked = state.ui.hideCompletedCourses;
   els.streakValue.textContent = `${streak} ${streak === 1 ? "day" : "days"}`;

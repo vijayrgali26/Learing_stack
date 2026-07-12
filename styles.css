@@ -229,7 +229,7 @@ button:disabled {
 
 .metric-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
   gap: 12px;
 }
 
@@ -498,6 +498,12 @@ select:focus {
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
+}
+
+.heatmap-meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .study-heatmap {

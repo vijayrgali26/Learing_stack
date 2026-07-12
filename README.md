@@ -28,7 +28,7 @@ Then open:
 http://127.0.0.1:8000
 ```
 
-Chrome or Edge will show an install option once the app loads. You can also use the `Install app` button when it appears in the sidebar.
+Chrome or Edge will show an install option once the app loads. You can also use the `Download app` button when it appears in the sidebar.
 
 ## Prototype note
 
