@@ -1,4 +1,4 @@
-const CACHE_NAME = "learning-stack-v6";
+const CACHE_NAME = "learning-stack-v7";
 const APP_SHELL = [
   "./",
   "./index.html",
